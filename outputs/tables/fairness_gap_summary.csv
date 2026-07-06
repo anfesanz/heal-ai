@@ -1,0 +1,76 @@
+model,subgroup_variable,metric,gap,best_subgroup,worst_subgroup
+logistic_regression,age_group,auc,0.16630763237796964,60+,18-39
+logistic_regression,age_group,sensitivity,0.9806451612903225,60+,18-39
+logistic_regression,age_group,false_negative_rate,0.9806451612903225,18-39,60+
+logistic_regression,age_group,brier_score,0.2972143535590587,60+,18-39
+logistic_regression,age_group,calibration_error,3.049084092132155,18-39,40-59
+logistic_regression,education,auc,0.11807772240638692,College graduate,Less than 9th grade
+logistic_regression,education,sensitivity,0.14469696969696977,Less than 9th grade,College graduate
+logistic_regression,education,false_negative_rate,0.14469696969696969,College graduate,Less than 9th grade
+logistic_regression,education,brier_score,0.13341654662715122,Less than 9th grade,College graduate
+logistic_regression,education,calibration_error,0.6657603231098379,College graduate,9th-11th grade
+logistic_regression,poverty_group,auc,0.0978403942963576,201-400% FPL,101-200% FPL
+logistic_regression,poverty_group,sensitivity,0.07310420076377522,201-400% FPL,>400% FPL
+logistic_regression,poverty_group,false_negative_rate,0.07310420076377523,>400% FPL,201-400% FPL
+logistic_regression,poverty_group,brier_score,0.07618970986789947,101-200% FPL,201-400% FPL
+logistic_regression,poverty_group,calibration_error,0.5725867720969635,201-400% FPL,<=100% FPL
+logistic_regression,race_ethnicity,auc,0.06892052867434328,Other/Multi-racial,Non-Hispanic Black
+logistic_regression,race_ethnicity,sensitivity,0.25,Other/Multi-racial,Other Hispanic
+logistic_regression,race_ethnicity,false_negative_rate,0.25,Other Hispanic,Other/Multi-racial
+logistic_regression,race_ethnicity,brier_score,0.058294474757304204,Non-Hispanic White,Other Hispanic
+logistic_regression,race_ethnicity,calibration_error,0.789184296798193,Other/Multi-racial,Other Hispanic
+logistic_regression,sex,auc,0.05066592801407421,Male,Female
+logistic_regression,sex,sensitivity,0.17546505781799904,Male,Female
+logistic_regression,sex,false_negative_rate,0.17546505781799898,Female,Male
+logistic_regression,sex,brier_score,0.014225774775900146,Male,Female
+logistic_regression,sex,calibration_error,0.46502037641662985,Male,Female
+random_forest,age_group,auc,0.10011192157012283,40-59,18-39
+random_forest,age_group,sensitivity,0.9032258064516129,60+,18-39
+random_forest,age_group,false_negative_rate,0.9032258064516129,18-39,60+
+random_forest,age_group,brier_score,0.24093565109032644,60+,18-39
+random_forest,age_group,calibration_error,1.9567658660349032,18-39,40-59
+random_forest,education,auc,0.07761318814808316,College graduate,Less than 9th grade
+random_forest,education,sensitivity,0.16193181818181823,Less than 9th grade,9th-11th grade
+random_forest,education,false_negative_rate,0.16193181818181818,9th-11th grade,Less than 9th grade
+random_forest,education,brier_score,0.08449182038832131,Less than 9th grade,College graduate
+random_forest,education,calibration_error,0.540833809051928,College graduate,9th-11th grade
+random_forest,poverty_group,auc,0.1033731835881967,201-400% FPL,101-200% FPL
+random_forest,poverty_group,sensitivity,0.1780758556891766,201-400% FPL,<=100% FPL
+random_forest,poverty_group,false_negative_rate,0.17807585568917667,<=100% FPL,201-400% FPL
+random_forest,poverty_group,brier_score,0.059088941708853635,101-200% FPL,201-400% FPL
+random_forest,poverty_group,calibration_error,0.415216329936396,201-400% FPL,<=100% FPL
+random_forest,race_ethnicity,auc,0.07345647998833094,Other/Multi-racial,Non-Hispanic Black
+random_forest,race_ethnicity,sensitivity,0.24675324675324684,Non-Hispanic White,Other/Multi-racial
+random_forest,race_ethnicity,false_negative_rate,0.24675324675324672,Other/Multi-racial,Non-Hispanic White
+random_forest,race_ethnicity,brier_score,0.047653421046607414,Non-Hispanic White,Other/Multi-racial
+random_forest,race_ethnicity,calibration_error,0.817391154525756,Non-Hispanic White,Non-Hispanic Asian
+random_forest,sex,auc,0.022959709467756606,Male,Female
+random_forest,sex,sensitivity,0.08421317244846649,Male,Female
+random_forest,sex,false_negative_rate,0.08421317244846657,Female,Male
+random_forest,sex,brier_score,0.015004858878446992,Male,Female
+random_forest,sex,calibration_error,0.19022008955052638,Male,Female
+xgboost,age_group,auc,0.03721706685032222,40-59,18-39
+xgboost,age_group,sensitivity,0.2709677419354839,60+,18-39
+xgboost,age_group,false_negative_rate,0.2709677419354839,18-39,60+
+xgboost,age_group,brier_score,0.1660590348765254,60+,18-39
+xgboost,age_group,calibration_error,0.5891931718384318,18-39,60+
+xgboost,education,auc,0.09280641478782026,College graduate,Less than 9th grade
+xgboost,education,sensitivity,0.08285984848484848,Some college/AA,Less than 9th grade
+xgboost,education,false_negative_rate,0.08285984848484851,Less than 9th grade,Some college/AA
+xgboost,education,brier_score,0.1008114218711853,Less than 9th grade,College graduate
+xgboost,education,calibration_error,0.3747064672911737,College graduate,Some college/AA
+xgboost,poverty_group,auc,0.07260439313062494,201-400% FPL,101-200% FPL
+xgboost,poverty_group,sensitivity,0.11888111888111885,101-200% FPL,>400% FPL
+xgboost,poverty_group,false_negative_rate,0.11888111888111885,>400% FPL,101-200% FPL
+xgboost,poverty_group,brier_score,0.03777521848678589,101-200% FPL,>400% FPL
+xgboost,poverty_group,calibration_error,0.4788890747043282,201-400% FPL,<=100% FPL
+xgboost,race_ethnicity,auc,0.09386623501859759,Other/Multi-racial,Non-Hispanic Black
+xgboost,race_ethnicity,sensitivity,0.2357142857142857,Other/Multi-racial,Other Hispanic
+xgboost,race_ethnicity,false_negative_rate,0.23571428571428565,Other Hispanic,Other/Multi-racial
+xgboost,race_ethnicity,brier_score,0.0417107418179512,Non-Hispanic Black,Other/Multi-racial
+xgboost,race_ethnicity,calibration_error,0.5001417207563209,Other/Multi-racial,Non-Hispanic Black
+xgboost,sex,auc,0.04476702299608537,Male,Female
+xgboost,sex,sensitivity,0.19255907491201613,Male,Female
+xgboost,sex,false_negative_rate,0.19255907491201607,Female,Male
+xgboost,sex,brier_score,0.002881549298763275,Male,Female
+xgboost,sex,calibration_error,0.13020989937466212,Male,Female
