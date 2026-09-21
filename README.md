@@ -186,4 +186,3 @@ This project frames fairness cautiously as subgroup performance assessment. Diff
 - Self-reported outcomes may contain measurement error.
 - Subgroup estimates can be unstable for small groups.
 - The selected predictors are limited to variables available in the public files.
-- This project is a portfolio demonstration, not a validated clinical tool.
