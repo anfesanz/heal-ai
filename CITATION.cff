@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it using the metadata below."
+title: "HEAL-AI Eval: Health AI Evaluation Across Demographic Groups"
+type: software
+authors:
+  - family-names: Sanchez-Segura
+    given-names: Felipe
+    orcid: "https://orcid.org/0000-0002-3272-5829"
+version: 1.0.0
+date-released: 2026-11-07
+repository-code: "https://github.com/anfesanz/heal-ai"

@@ -4,6 +4,10 @@ HEAL-AI Eval shows how average model performance can hide differences between de
 
 **Live dashboard:** [demgroupseval.streamlit.app](https://demgroupseval.streamlit.app)
 
+## Citation
+
+To cite this project, use GitHub's **Cite this repository** option. Citation metadata is maintained in [`CITATION.cff`](CITATION.cff).
+
 ## Project Motivation
 
 The goal is not to build a complex deep learning system. The goal is to show a reproducible workflow for evaluating health prediction models overall and by demographic subgroups, with attention to calibration, subgroup error, performance gaps, and uncertainty.
