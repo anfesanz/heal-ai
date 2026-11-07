@@ -145,3 +145,43 @@ def plot_bootstrap_forest(intervals: pd.DataFrame, metric: str, path: str | Path
     ax.set_xlabel(metric.replace("_", " ").title())
     ax.set_title(f"Bootstrap 95% intervals for {metric.replace('_', ' ')}")
     return _save(fig, path)
+
+
+def net_benefit(y_true: np.ndarray, y_prob: np.ndarray, threshold: float) -> float:
+    """Decision-curve net benefit of treating everyone with risk >= threshold."""
+
+    y_true = np.asarray(y_true).astype(int)
+    treat = np.asarray(y_prob) >= threshold
+    n = len(y_true)
+    tp = np.sum(treat & (y_true == 1))
+    fp = np.sum(treat & (y_true == 0))
+    return tp / n - fp / n * threshold / (1 - threshold)
+
+
+def plot_decision_curve(
+    y_test,
+    predicted_probabilities_by_model: dict[str, np.ndarray],
+    path: str | Path | None = None,
+    thresholds: np.ndarray | None = None,
+    operating_points: dict[str, float] | None = None,
+):
+    """Net benefit by risk threshold, compared with treat-all and treat-none."""
+
+    thresholds = thresholds if thresholds is not None else np.linspace(0.01, 0.6, 60)
+    y_true = np.asarray(y_test).astype(int)
+    prevalence = y_true.mean()
+    fig, ax = plt.subplots(figsize=(7, 5.2))
+    for name, y_prob in predicted_probabilities_by_model.items():
+        line = ax.plot(thresholds, [net_benefit(y_true, y_prob, t) for t in thresholds], label=name)
+        if operating_points and name in operating_points:
+            t = operating_points[name]
+            ax.plot(t, net_benefit(y_true, y_prob, t), marker="o", color=line[0].get_color())
+    treat_all = prevalence - (1 - prevalence) * thresholds / (1 - thresholds)
+    ax.plot(thresholds, treat_all, linestyle="--", color="0.5", label="Treat all")
+    ax.axhline(0, color="0.2", linewidth=0.8, label="Treat none")
+    ax.set_ylim(-0.02, max(prevalence * 1.1, 0.05))
+    ax.set_xlabel("Risk threshold")
+    ax.set_ylabel("Net benefit")
+    ax.set_title("Decision curve (dots: chosen operating points)")
+    ax.legend(fontsize=8)
+    return _save(fig, path)

@@ -5,17 +5,22 @@ from __future__ import annotations
 from pathlib import Path
 
 import joblib
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, cross_val_predict, train_test_split
 from sklearn.pipeline import Pipeline
 
 from .preprocessing import DEFAULT_FEATURES, TARGET, build_preprocessor, prepare_xy
 
 
 def get_model_specs(random_state: int = 42) -> dict[str, object]:
-    """Return the three requested model estimators."""
+    """Return the three model estimators.
+
+    No class weighting is used, so all three models output probabilities on
+    the same scale and can be compared at thresholds chosen the same way.
+    """
 
     try:
         from xgboost import XGBClassifier
@@ -33,11 +38,10 @@ def get_model_specs(random_state: int = 42) -> dict[str, object]:
         xgb_model = None
 
     return {
-        "logistic_regression": LogisticRegression(max_iter=1000, class_weight="balanced"),
+        "logistic_regression": LogisticRegression(max_iter=1000),
         "random_forest": RandomForestClassifier(
             n_estimators=300,
             min_samples_leaf=10,
-            class_weight="balanced_subsample",
             random_state=random_state,
             n_jobs=-1,
         ),
@@ -63,6 +67,43 @@ def build_pipeline(
             ("model", model),
         ]
     )
+
+
+def threshold_for_sensitivity(y_true: np.ndarray, y_prob: np.ndarray, target: float = 0.80) -> float:
+    """Return the highest cutoff whose sensitivity is at least `target`."""
+
+    y_true = np.asarray(y_true).astype(int)
+    positive_probs = np.sort(np.asarray(y_prob, dtype=float)[y_true == 1])[::-1]
+    if len(positive_probs) == 0:
+        raise ValueError("Cannot choose a sensitivity-based threshold without positive cases.")
+    k = int(np.ceil(target * len(positive_probs)))
+    return float(positive_probs[max(k, 1) - 1])
+
+
+def choose_thresholds(
+    df: pd.DataFrame,
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    features: list[str] | None = None,
+    target_sensitivity: float = 0.80,
+    n_splits: int = 5,
+    random_state: int = 42,
+) -> dict[str, float]:
+    """Pick each model's cutoff from out-of-fold training predictions.
+
+    The test set is never used, so test-set sensitivity is an honest estimate
+    of how the chosen operating point performs on new data.
+    """
+
+    cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    thresholds = {}
+    for model_name, estimator in get_model_specs(random_state=random_state).items():
+        if estimator is None:
+            continue
+        pipeline = build_pipeline(df, model_name, features=features, random_state=random_state)
+        oof = cross_val_predict(pipeline, X_train, y_train, cv=cv, method="predict_proba")[:, 1]
+        thresholds[model_name] = threshold_for_sensitivity(y_train, oof, target=target_sensitivity)
+    return thresholds
 
 
 def train_models(

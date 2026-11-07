@@ -18,18 +18,23 @@ This project is designed for public NHANES data from the CDC. The default workfl
 
 - read a cleaned local CSV at `data/raw/nhanes_clean.csv`;
 - reuse an analysis-ready file at `data/processed/nhanes_diabetes_analysis.csv`;
-- optionally download public CDC NHANES XPT files with `python -m src.run_analysis --download`.
+- optionally download public CDC NHANES 2017–2018 XPT files with `python -m src.run_analysis --download`.
+
+After changing the cleaning logic, rebuild the cached analysis file with `python -m src.run_analysis --rebuild`.
 
 No private data are used.
 
 ## Outcome Definition
 
-The implemented outcome is binary self-reported diabetes status from NHANES diabetes questionnaire data:
+The primary outcome (`diabetes`) combines self-report with a laboratory measure:
 
-- `1`: participant reports being told they have diabetes;
-- `0`: participant reports no diabetes or borderline diabetes.
+- `1`: participant reports being told they have diabetes (`DIQ010`), **or** has HbA1c ≥ 6.5% (`LBXGH`, GHB_J file);
+- `0`: participant reports no diabetes or borderline diabetes **and** has HbA1c < 6.5%;
+- excluded: no self-reported diagnosis and no HbA1c result.
 
-This is a demonstration outcome and should not be interpreted as a clinical diagnostic model.
+Self-report alone misses undiagnosed diabetes, which is more common in groups with less access to healthcare. In a subgroup fairness analysis, a self-report-only label would bias the very comparisons being made. The self-report-only label (`diabetes_self_report`) and an `undiagnosed_diabetes` flag are kept, and `outcome_definition_by_subgroup.csv` compares both definitions by subgroup. In the 2017–2018 data, about 17% of cases are undiagnosed (survey-weighted), with large differences between groups (for example 28% among non-Hispanic Black adults vs 12% among non-Hispanic White adults).
+
+HbA1c is used only to define the outcome, never as a predictor. This is a demonstration outcome and should not be interpreted as a clinical diagnostic model.
 
 ## Predictors
 
@@ -53,7 +58,11 @@ The project trains three simple supervised learning models:
 - random forest;
 - XGBoost.
 
-All models use scikit-learn pipelines with imputation, categorical encoding, and numeric scaling where appropriate.
+All models use scikit-learn pipelines with imputation, categorical encoding, and numeric scaling where appropriate. No class weighting is used, so all three models produce probabilities on the same scale and can be compared fairly.
+
+### Decision threshold
+
+Threshold-based metrics (sensitivity, specificity, false negative rate, etc.) use a cutoff chosen for each model to reach **80% sensitivity**, a screening-oriented operating point. The cutoff is chosen on 5-fold cross-validated predictions from the training set and then applied unchanged to the held-out test set, so test-set sensitivity is an honest estimate. One cutoff is used for everyone (no group-specific thresholds). Thresholds are saved in `decision_thresholds.csv`; change the target with `--target-sensitivity`. A decision curve (net benefit across risk thresholds) is also produced. The "best" model is the one with the highest test-set AUC.
 
 ## Evaluation Metrics
 
@@ -83,6 +92,14 @@ Reusable subgroup evaluation functions calculate the same metrics by:
 
 This helps demonstrate how average performance can hide weaker performance in specific demographic groups.
 
+Subgroups with fewer than 30 participants or fewer than 20 outcome cases are reported with a warning instead of metrics, because sensitivity and calibration are unstable there.
+
+The gap summary reports the best-worst difference for each metric, labelling best and worst according to each metric's direction: higher is better for AUC and sensitivity; lower is better for false negative rate, Brier score and calibration error. Note that Brier score also depends on prevalence, so it is naturally lower in groups with few cases.
+
+### Survey weights
+
+NHANES uses a complex, multistage sample. As a sensitivity analysis, all overall and subgroup metrics are also computed with NHANES exam weights (`WTMEC2YR`), giving population-weighted point estimates for US adults (`*_weighted.csv` tables and a toggle in the dashboard). Models are trained without weights. Weighted estimates are point estimates only: confidence intervals do not yet account for strata (`SDMVSTRA`) and PSUs (`SDMVPSU`).
+
 ## Calibration
 
 The project estimates:
@@ -103,17 +120,19 @@ Bootstrap resampling is used to estimate 95% confidence intervals for key metric
 - false negative rate;
 - Brier score.
 
-Small subgroup samples return warnings instead of unstable intervals.
+Intervals use the same decision threshold as the point estimates. Small subgroup samples return warnings instead of unstable intervals. The bootstrap resamples individuals and ignores the NHANES survey design.
 
 ## Outputs
 
 Tables are saved to `outputs/tables/`:
 
-- `overall_model_performance.csv`;
-- `subgroup_model_performance.csv`;
+- `overall_model_performance.csv` and `overall_model_performance_weighted.csv`;
+- `subgroup_model_performance.csv` and `subgroup_model_performance_weighted.csv`;
 - `calibration_metrics.csv`;
-- `fairness_gap_summary.csv`;
-- `bootstrap_uncertainty_intervals.csv`.
+- `fairness_gap_summary.csv` and `fairness_gap_summary_weighted.csv`;
+- `bootstrap_uncertainty_intervals.csv`;
+- `decision_thresholds.csv`;
+- `outcome_definition_by_subgroup.csv`.
 
 Figures are saved to `outputs/figures/`:
 
@@ -124,7 +143,8 @@ Figures are saved to `outputs/figures/`:
 - subgroup false negative rate comparison;
 - subgroup Brier score comparison;
 - bootstrap confidence interval forest plot;
-- performance gap plot.
+- performance gap plot;
+- decision curve.
 
 Fitted models are saved to `outputs/models/`.
 
@@ -167,7 +187,7 @@ make dashboard
 
 ## Testing
 
-Install the dashboard and test dependencies, then run the test suite:
+Install the analysis, dashboard and test dependencies, then run the test suite:
 
 ```bash
 pip install -r requirements-dev.txt
@@ -211,8 +231,9 @@ This project frames fairness cautiously as subgroup performance assessment. Diff
 
 ## Limitations
 
+- **Outcome misclassification differs by group.** Self-reported diagnosis misses undiagnosed diabetes, which is more common in groups with less access to care. Adding HbA1c ≥ 6.5% reduces but does not remove this: a single HbA1c measurement is not a clinical diagnosis, and HbA1c can differ across racial/ethnic groups for reasons unrelated to blood glucose.
+- Survey-weighted estimates are point estimates; confidence intervals do not account for the NHANES strata and PSUs.
 - NHANES is cross-sectional and not designed for individual clinical prediction deployment.
-- Self-reported outcomes may contain measurement error.
 - Subgroup estimates can be unstable for small groups.
 - The selected predictors are limited to variables available in the public files.
 - This project is a research and portfolio demonstration, not a validated clinical tool.

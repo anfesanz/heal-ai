@@ -31,7 +31,7 @@ def _bootstrap_metrics_fast(y_true: np.ndarray, y_prob: np.ndarray, threshold: f
     fn = np.sum(positive & ~y_pred)
     return {
         "auc": roc_auc_score(y_true, y_prob) if len(np.unique(y_true)) > 1 else np.nan,
-        "sensitivity": tp / (tp + fn) if (tp + fn) else 0.0,
+        "sensitivity": tp / (tp + fn) if (tp + fn) else np.nan,
         "specificity": tn / (tn + fp) if (tn + fp) else np.nan,
         "false_positive_rate": fp / (fp + tn) if (fp + tn) else np.nan,
         "false_negative_rate": fn / (fn + tp) if (fn + tp) else np.nan,
@@ -46,31 +46,36 @@ def bootstrap_metric_intervals(
     n_bootstrap: int = 500,
     random_state: int = 42,
     min_n: int = 30,
+    threshold: float = 0.5,
+    min_positives: int = 20,
 ) -> pd.DataFrame:
-    """Estimate 95% bootstrap confidence intervals for selected metrics."""
+    """Estimate 95% bootstrap confidence intervals for selected metrics.
+
+    Resamples individuals, so intervals ignore the NHANES survey design.
+    """
 
     metrics = metrics or BOOTSTRAP_METRICS
     y_true = np.asarray(y_true).astype(int)
     y_prob = np.asarray(y_prob)
-    if len(y_true) < min_n or len(np.unique(y_true)) < 2:
+    if len(y_true) < min_n or len(np.unique(y_true)) < 2 or y_true.sum() < min_positives:
         return pd.DataFrame(
             {
                 "metric": metrics,
                 "estimate": np.nan,
                 "ci_low": np.nan,
                 "ci_high": np.nan,
-                "warning": "Too few observations or only one outcome class.",
+                "warning": f"Too few observations or fewer than {min_positives} outcome cases.",
             }
         )
 
     rng = np.random.default_rng(random_state)
-    point = classification_metrics(y_true, y_prob, include_calibration=False)
+    point = classification_metrics(y_true, y_prob, threshold=threshold, include_calibration=False)
     samples = {metric: [] for metric in metrics}
     for _ in range(n_bootstrap):
         idx = rng.integers(0, len(y_true), size=len(y_true))
         if len(np.unique(y_true[idx])) < 2:
             continue
-        boot = _bootstrap_metrics_fast(y_true[idx], y_prob[idx])
+        boot = _bootstrap_metrics_fast(y_true[idx], y_prob[idx], threshold=threshold)
         for metric in metrics:
             samples[metric].append(boot[metric])
 
@@ -99,6 +104,8 @@ def bootstrap_by_subgroup(
     n_bootstrap: int = 500,
     min_n: int = 30,
     random_state: int = 42,
+    threshold: float = 0.5,
+    min_positives: int = 20,
 ) -> pd.DataFrame:
     """Bootstrap intervals within subgroup levels."""
 
@@ -111,6 +118,8 @@ def bootstrap_by_subgroup(
             n_bootstrap=n_bootstrap,
             random_state=random_state + i,
             min_n=min_n,
+            threshold=threshold,
+            min_positives=min_positives,
         )
         intervals.insert(0, "subgroup", value)
         intervals.insert(0, "subgroup_variable", subgroup_variable)

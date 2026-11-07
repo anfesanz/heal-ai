@@ -10,6 +10,7 @@ TABLE_DIR = PROJECT_ROOT / "outputs" / "tables"
 EXPECTED_COLUMNS = {
     "overall_model_performance.csv": {
         "model",
+        "threshold",
         "auc",
         "sensitivity",
         "specificity",
@@ -27,7 +28,34 @@ EXPECTED_COLUMNS = {
         "model",
         "subgroup_variable",
         "metric",
+        "higher_is_better",
         "gap",
+        "best_subgroup",
+        "worst_subgroup",
+    },
+    "decision_thresholds.csv": {
+        "model",
+        "threshold",
+        "target_sensitivity",
+    },
+    "overall_model_performance_weighted.csv": {
+        "model",
+        "threshold",
+        "auc",
+        "sensitivity",
+    },
+    "subgroup_model_performance_weighted.csv": {
+        "model",
+        "subgroup_variable",
+        "subgroup",
+        "auc",
+    },
+    "outcome_definition_by_subgroup.csv": {
+        "subgroup_variable",
+        "subgroup",
+        "prevalence_self_report",
+        "prevalence_self_report_or_hba1c",
+        "undiagnosed_share_of_cases",
     },
     "calibration_metrics.csv": {
         "model",

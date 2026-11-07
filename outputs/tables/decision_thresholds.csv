@@ -1,0 +1,4 @@
+model,threshold,target_sensitivity,selection
+logistic_regression,0.1987488042515981,0.8,5-fold out-of-fold predictions on the training set
+random_forest,0.21236721607480605,0.8,5-fold out-of-fold predictions on the training set
+xgboost,0.18110285699367523,0.8,5-fold out-of-fold predictions on the training set

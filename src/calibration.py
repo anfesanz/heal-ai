@@ -15,8 +15,16 @@ from sklearn.metrics import brier_score_loss
 EPS = 1e-6
 
 
-def calibration_slope_intercept(y_true: np.ndarray, y_prob: np.ndarray) -> tuple[float, float]:
-    """Estimate calibration slope and intercept via logistic recalibration."""
+def calibration_slope_intercept(
+    y_true: np.ndarray,
+    y_prob: np.ndarray,
+    sample_weight: np.ndarray | None = None,
+) -> tuple[float, float]:
+    """Estimate calibration slope and intercept via logistic recalibration.
+
+    When `sample_weight` is given (e.g. NHANES survey weights), a weighted
+    logistic fit gives population-weighted point estimates.
+    """
 
     y_true = np.asarray(y_true).astype(int)
     y_prob = np.clip(np.asarray(y_prob), EPS, 1 - EPS)
@@ -29,20 +37,31 @@ def calibration_slope_intercept(y_true: np.ndarray, y_prob: np.ndarray) -> tuple
             warnings.simplefilter("ignore", PerfectSeparationWarning)
             warnings.simplefilter("ignore", ConvergenceWarning)
             warnings.simplefilter("ignore", RuntimeWarning)
-            result = sm.Logit(y_true, design).fit(disp=False, maxiter=100)
-        if not result.mle_retvals.get("converged", False):
-            return np.nan, np.nan
+            if sample_weight is None:
+                result = sm.Logit(y_true, design).fit(disp=False, maxiter=100)
+                if not result.mle_retvals.get("converged", False):
+                    return np.nan, np.nan
+            else:
+                weights = np.asarray(sample_weight, dtype=float)
+                weights = weights / weights.mean()
+                result = sm.GLM(y_true, design, family=sm.families.Binomial(), var_weights=weights).fit(maxiter=100)
+                if not result.converged:
+                    return np.nan, np.nan
         return float(result.params[1]), float(result.params[0])
     except Exception:
         return np.nan, np.nan
 
 
-def calibration_metrics(y_true: np.ndarray, y_prob: np.ndarray) -> dict[str, float]:
-    """Return Brier score, slope, and intercept."""
+def calibration_metrics(
+    y_true: np.ndarray,
+    y_prob: np.ndarray,
+    sample_weight: np.ndarray | None = None,
+) -> dict[str, float]:
+    """Return Brier score, slope, and intercept (optionally survey-weighted)."""
 
-    slope, intercept = calibration_slope_intercept(y_true, y_prob)
+    slope, intercept = calibration_slope_intercept(y_true, y_prob, sample_weight=sample_weight)
     return {
-        "brier_score": brier_score_loss(y_true, y_prob),
+        "brier_score": brier_score_loss(y_true, y_prob, sample_weight=sample_weight),
         "calibration_slope": slope,
         "calibration_intercept": intercept,
     }

@@ -27,11 +27,13 @@ class NHANESFile:
     columns: tuple[str, ...]
 
 
-NHANES_2017_2020_FILES = (
+# NHANES 2017-2018 cycle ("_J" files).
+NHANES_2017_2018_FILES = (
     NHANESFile(
         "demographics",
         "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/DEMO_J.xpt",
-        ("SEQN", "RIDAGEYR", "RIAGENDR", "RIDRETH3", "DMDEDUC2", "INDFMPIR"),
+        # WTMEC2YR/SDMVSTRA/SDMVPSU: exam weight, strata and PSU for survey-weighted estimates.
+        ("SEQN", "RIDAGEYR", "RIAGENDR", "RIDRETH3", "DMDEDUC2", "INDFMPIR", "WTMEC2YR", "SDMVSTRA", "SDMVPSU"),
     ),
     NHANESFile(
         "body_measures",
@@ -58,7 +60,15 @@ NHANES_2017_2020_FILES = (
         "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/TCHOL_J.xpt",
         ("SEQN", "LBXTC"),
     ),
+    NHANESFile(
+        "glycohemoglobin",
+        "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/GHB_J.xpt",
+        ("SEQN", "LBXGH"),
+    ),
 )
+
+# HbA1c threshold (%) for diabetes (American Diabetes Association criterion).
+HBA1C_DIABETES_THRESHOLD = 6.5
 
 
 def read_clean_csv(path: str | Path = RAW_DIR / "nhanes_clean.csv") -> pd.DataFrame:
@@ -74,7 +84,7 @@ def read_clean_csv(path: str | Path = RAW_DIR / "nhanes_clean.csv") -> pd.DataFr
 
 
 def download_nhanes_xpt_files(
-    files: Iterable[NHANESFile] = NHANES_2017_2020_FILES,
+    files: Iterable[NHANESFile] = NHANES_2017_2018_FILES,
     raw_dir: str | Path = RAW_DIR,
 ) -> dict[str, Path]:
     """Download public CDC XPT files if they are not already present."""
@@ -112,7 +122,7 @@ def load_nhanes_xpt(paths: dict[str, str | Path]) -> pd.DataFrame:
     frames = []
     for name, path in paths.items():
         frame = pd.read_sas(path, format="xport")
-        spec = next((item for item in NHANES_2017_2020_FILES if item.name == name), None)
+        spec = next((item for item in NHANES_2017_2018_FILES if item.name == name), None)
         if spec is not None:
             columns = [col for col in spec.columns if col in frame.columns]
             frame = frame[columns]
@@ -125,7 +135,14 @@ def load_nhanes_xpt(paths: dict[str, str | Path]) -> pd.DataFrame:
 
 
 def clean_nhanes(raw: pd.DataFrame) -> pd.DataFrame:
-    """Create an analysis-ready dataset with a diabetes outcome."""
+    """Create an analysis-ready dataset with a diabetes outcome.
+
+    The primary outcome `diabetes` is self-reported diagnosis OR HbA1c >= 6.5%.
+    Self-report alone misses undiagnosed diabetes, which is more common in
+    groups with less access to care, so it would bias a subgroup analysis.
+    `diabetes_self_report` is kept for comparison, and `undiagnosed_diabetes`
+    flags HbA1c-defined cases without a self-reported diagnosis.
+    """
 
     df = raw.copy()
     df["age"] = df["RIDAGEYR"]
@@ -164,12 +181,33 @@ def clean_nhanes(raw: pd.DataFrame) -> pd.DataFrame:
     df["systolic_bp"] = df[[col for col in ["BPXSY1", "BPXSY2", "BPXSY3", "BPXSY4"] if col in df]].mean(axis=1)
     df["diastolic_bp"] = df[[col for col in ["BPXDI1", "BPXDI2", "BPXDI3", "BPXDI4"] if col in df]].mean(axis=1)
     df["ever_smoked_100_cigarettes"] = df["SMQ020"].map({1: "Yes", 2: "No"})
-    # Borderline diabetes is treated as non-case for this demonstration outcome.
-    df["diabetes"] = df["DIQ010"].map({1: 1, 2: 0, 3: 0})
+    # Self-report: borderline (3) counts as no diagnosis; refused/don't know (7/9) are missing.
+    self_report = df["DIQ010"].map({1: 1.0, 2: 0.0, 3: 0.0})
+    hba1c = df["LBXGH"] if "LBXGH" in df else pd.Series(np.nan, index=df.index)
+    high_hba1c = (hba1c >= HBA1C_DIABETES_THRESHOLD).astype(float).where(hba1c.notna())
+
+    # Case: either source positive. Non-case: both sources observed and negative.
+    df["diabetes"] = np.select(
+        [self_report.eq(1) | high_hba1c.eq(1), self_report.eq(0) & high_hba1c.eq(0)],
+        [1.0, 0.0],
+        default=np.nan,
+    )
+    df["diabetes_self_report"] = self_report
+    df["hba1c"] = hba1c
+    df["undiagnosed_diabetes"] = (self_report.eq(0) & high_hba1c.eq(1)).astype(float).where(df["diabetes"].notna())
+    for col in ["WTMEC2YR", "SDMVSTRA", "SDMVPSU"]:
+        if col not in df:
+            df[col] = np.nan
 
     keep = [
         "SEQN",
         "diabetes",
+        "diabetes_self_report",
+        "undiagnosed_diabetes",
+        "hba1c",
+        "WTMEC2YR",
+        "SDMVSTRA",
+        "SDMVPSU",
         "age",
         "age_group",
         "sex",
@@ -191,17 +229,22 @@ def load_or_build_nhanes_dataset(
     clean_csv: str | Path = RAW_DIR / "nhanes_clean.csv",
     processed_csv: str | Path = PROCESSED_DIR / "nhanes_diabetes_analysis.csv",
     download: bool = False,
+    rebuild: bool = False,
 ) -> pd.DataFrame:
-    """Load a cleaned CSV, processed CSV, or build from public CDC files."""
+    """Load a cleaned CSV, processed CSV, or build from public CDC files.
+
+    Set `rebuild=True` to ignore a cached processed CSV (needed after the
+    cleaning logic changes).
+    """
 
     processed_csv = Path(processed_csv)
-    if processed_csv.exists():
+    if processed_csv.exists() and not rebuild:
         return pd.read_csv(processed_csv)
 
     clean_csv = Path(clean_csv)
     if clean_csv.exists():
         df = read_clean_csv(clean_csv)
-    elif download:
+    elif download or rebuild:
         paths = download_nhanes_xpt_files()
         df = clean_nhanes(load_nhanes_xpt(paths))
     else:
