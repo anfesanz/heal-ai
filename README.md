@@ -2,6 +2,8 @@
 
 Health AI models are often evaluated using average performance metrics. However, average accuracy can conceal systematic differences in performance across demographic groups. This project demonstrates a responsible AI evaluation workflow for population health prediction models using public NHANES data.
 
+**Live dashboard:** [demgroupseval.streamlit.app](https://demgroupseval.streamlit.app)
+
 ## Project Motivation
 
 The goal is not to build a complex deep learning system. The goal is to show a reproducible workflow for evaluating health prediction models overall and by demographic subgroups, with attention to calibration, subgroup error, performance gaps, and uncertainty.
@@ -176,7 +178,7 @@ GitHub Actions runs the same checks with Python 3.12 for every pull request and 
 
 ## Deployment
 
-The interactive dashboard is designed for Streamlit Community Cloud, using this GitHub repository as its source:
+The interactive dashboard is deployed on Streamlit Community Cloud at <https://demgroupseval.streamlit.app>, using this GitHub repository as its source:
 
 - branch: `main`;
 - entry point: `app/streamlit_app.py`;
