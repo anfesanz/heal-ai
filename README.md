@@ -1,6 +1,6 @@
 # HEAL-AI Eval: Health AI Evaluation Across Demographic Groups
 
-Health AI models are often evaluated using average performance metrics. However, average accuracy can conceal systematic differences in performance across demographic groups. This project demonstrates a responsible AI evaluation workflow for population health prediction models using public NHANES data.
+HEAL-AI Eval shows how average model performance can hide differences between demographic groups. It uses public CDC NHANES 2017–2018 data to predict diabetes using an outcome based on self-report and HbA1c, with about ten predictors: age, sex, race/ethnicity, education, income, BMI, blood pressure, cholesterol, and smoking. The project trains logistic regression, random forest, and XGBoost models, then evaluates them overall and by age, sex, education, poverty level, and race/ethnicity. Evaluation covers discrimination, error rates, Brier score, calibration slope and intercept, best-versus-worst subgroup gaps, and bootstrap confidence intervals.
 
 **Live dashboard:** [demgroupseval.streamlit.app](https://demgroupseval.streamlit.app)
 

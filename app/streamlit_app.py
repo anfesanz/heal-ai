@@ -170,8 +170,6 @@ st.markdown(
     "Choose a model and a demographic variable to compare performance across groups. "
     "Built on public NHANES 2017–2018 data."
 )
-st.caption("Research and portfolio demonstration, not a validated clinical tool.")
-
 control_1, control_2, control_3 = st.columns([1, 1, 1.4])
 weighting = WEIGHTING_OPTIONS[0]
 if has_weighted:
