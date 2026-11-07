@@ -3,3 +3,24 @@ headless = true
 
 [browser]
 gatherUsageStats = false
+
+# Shared typography and spacing. Colours live in [theme.light] and
+# [theme.dark] so the app follows each viewer's light/dark preference
+# (setting colours here instead would force a single light theme).
+[theme]
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+baseFontSize = 16
+# h1 (title), h2, h3 (section headings), h4-h6
+headingFontSizes = ["2.25rem", "1.6rem", "1.3rem", "1.15rem", "1.05rem", "1rem"]
+metricValueFontSize = "1.9rem"
+paddingTop = "1.5rem"
+
+[theme.light]
+primaryColor = "#1a7a7a"
+# Okabe-Ito colour-blind-safe palette
+chartCategoricalColors = ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00", "#F0E442"]
+
+[theme.dark]
+primaryColor = "#3fb8b0"
+# Okabe-Ito with the dark blue swapped for sky blue, for contrast on dark backgrounds
+chartCategoricalColors = ["#56B4E9", "#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00", "#F0E442"]
