@@ -1,10 +1,10 @@
 # HEAL-AI Eval: Health AI Evaluation Across Demographic Groups
 
-Health AI models are often evaluated using average performance metrics. However, average accuracy can conceal systematic differences in performance across demographic groups. This project demonstrates a responsible AI evaluation workflow for population health prediction models using NHANES public data.
+Health AI models are often evaluated using average performance metrics. However, average accuracy can conceal systematic differences in performance across demographic groups. This project demonstrates a responsible AI evaluation workflow for population health prediction models using public NHANES data.
 
 ## Project Motivation
 
-The goal is not to build a complex deep learning system. The goal is to show a clear, reproducible workflow for evaluating health prediction models overall and by demographic subgroups, with attention to calibration, subgroup error, performance gaps, and uncertainty.
+The goal is not to build a complex deep learning system. The goal is to show a reproducible workflow for evaluating health prediction models overall and by demographic subgroups, with attention to calibration, subgroup error, performance gaps, and uncertainty.
 
 ## Why Health AI Evaluation Matters
 
@@ -151,6 +151,7 @@ python -m src.run_analysis --download
 Launch the dashboard:
 
 ```bash
+pip install -r app/requirements.txt
 streamlit run app/streamlit_app.py
 ```
 
@@ -162,17 +163,43 @@ make analysis-download N_BOOTSTRAP=500
 make dashboard
 ```
 
+## Testing
+
+Install the dashboard and test dependencies, then run the test suite:
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+GitHub Actions runs the same checks with Python 3.12 for every pull request and every push to `main`.
+
+## Deployment
+
+The interactive dashboard is designed for Streamlit Community Cloud, using this GitHub repository as its source:
+
+- branch: `main`;
+- entry point: `app/streamlit_app.py`;
+- Python version: 3.12;
+- application secrets: none required.
+
+The dashboard reads the versioned tables and figures in `outputs/`, so it does not retrain models or download data during startup. This keeps the web deployment lightweight and reproducible.
+
 ## Project Structure
 
 ```text
 heal-ai-eval/
+├── .github/workflows/
+├── .streamlit/
 ├── README.md
 ├── requirements.txt
+├── requirements-dev.txt
 ├── .gitignore
 ├── data/
 ├── notebooks/
 ├── src/
 ├── outputs/
+├── tests/
 └── app/
 ```
 
@@ -186,3 +213,4 @@ This project frames fairness cautiously as subgroup performance assessment. Diff
 - Self-reported outcomes may contain measurement error.
 - Subgroup estimates can be unstable for small groups.
 - The selected predictors are limited to variables available in the public files.
+- This project is a research and portfolio demonstration, not a validated clinical tool.
